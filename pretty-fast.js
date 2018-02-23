@@ -680,6 +680,7 @@
    *        printing. Properties:
    *          - url: The URL string of the ugly JS code.
    *          - indent: The string to indent code by.
+   *          - columnLevelMapAccuracy: Accurate source map, otherwise one mapping entry per line
    *
    * @returns Object
    *          An object with the following properties:
@@ -715,24 +716,28 @@
       var bufferLine = -1;
       var bufferColumn = -1;
       return function write(str, line, column) {
-        if (line != null && bufferLine === -1) {
-          bufferLine = line;
-        }
-        if (column != null && bufferColumn === -1) {
-          bufferColumn = column;
-        }
-        buffer.push(str);
-
-        if (str == "\n") {
-          var lineStr = "";
-          for (var i = 0, len = buffer.length; i < len; i++) {
-            lineStr += buffer[i];
+        if (options.columnLevelMapAccuracy) {
+          result.add(new SourceNode(line, column, options.url, str));
+        } else {
+          if (line != null && bufferLine === -1) {
+            bufferLine = line;
           }
-          result.add(new SourceNode(bufferLine, bufferColumn, options.url,
-                                    lineStr));
-          buffer.splice(0, buffer.length);
-          bufferLine = -1;
-          bufferColumn = -1;
+          if (column != null && bufferColumn === -1) {
+            bufferColumn = column;
+          }
+          buffer.push(str);
+  
+          if (str == "\n") {
+            var lineStr = "";
+            for (var i = 0, len = buffer.length; i < len; i++) {
+              lineStr += buffer[i];
+            }
+            result.add(new SourceNode(bufferLine, bufferColumn, options.url,
+                                      lineStr));
+            buffer.splice(0, buffer.length);
+            bufferLine = -1;
+            bufferColumn = -1;
+          }
         }
       };
     }());
